@@ -4,25 +4,17 @@
    Layout profissional e responsivo
 ======================================== */
 
-header('Cache-Control: no-cache, no-store, must-revalidate');
-header('Pragma: no-cache');
-header('Expires: 0');
-
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-if (!isset($base) || !is_string($base) || $base === '') {
-    $base = defined('BASE_PATH') ? BASE_PATH : '/sistema';
-}
-
+$base = isset($base) ? $base : '/sistema';
 $base = '/' . trim($base, '/');
-
 if ($base === '/') {
     $base = '';
 }
 
-$asset = static function ($path) use ($base) {
+$asset = function ($path) use ($base) {
     return $base . '/' . ltrim($path, '/');
 };
 ?>
@@ -304,6 +296,7 @@ $asset = static function ($path) use ($base) {
             font-size: 13px;
             font-weight: 550;
             transition: background .2s, color .2s;
+            cursor: pointer;
         }
 
         .sidebar-nav .nav-link > i {
@@ -388,6 +381,14 @@ $asset = static function ($path) use ($base) {
         .tab-content,
         .tab-pane {
             min-width: 0;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
         }
 
         /* TOAST E MODAL */
@@ -559,6 +560,8 @@ $asset = static function ($path) use ($base) {
                 font-size: 10px;
                 font-weight: 650;
                 white-space: nowrap;
+                cursor: pointer;
+                border: none;
             }
 
             .mobile-nav .nav-link i {
@@ -587,39 +590,14 @@ $asset = static function ($path) use ($base) {
         }
     </style>
 </head>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const botaoSair = document.getElementById('btnLogout');
-
-    if (!botaoSair) return;
-
-    botaoSair.addEventListener('click', function () {
-        if (typeof window.logout === 'function') {
-            window.logout();
-        } else {
-            console.error(
-                'Função logout() não encontrada. Verifique public/js/app.js.'
-            );
-            alert('A função de sair não foi carregada.');
-        }
-    });
-});
-</script>
-
-
 <body id="up">
 
 <!-- CABEÇALHO -->
 <header class="app-header">
-
-    <a href="#dashboard" class="app-brand"
-       onclick="document.querySelector('[data-menu-target=\'#dashboard\']')?.click(); return false;">
-
+    <a href="#dashboard" class="app-brand" onclick="ativarAba('#dashboard'); if(typeof carregarDashboard === 'function') carregarDashboard(); return false;">
         <span class="app-brand-icon">
             <i class="fa-solid fa-industry"></i>
         </span>
-
         <span class="app-brand-text">
             <strong>Sistema de Laminação</strong>
             <small>Controle de produção</small>
@@ -627,313 +605,163 @@ document.addEventListener('DOMContentLoaded', function () {
     </a>
 
     <div class="header-right">
-
         <div class="system-status">
             <span></span>
             Sistema operacional
         </div>
 
         <div class="user-area">
-
-            <span class="user-avatar"
-                  id="usuario-mobile-tooltip"
-                  data-bs-toggle="tooltip"
-                  data-bs-placement="bottom"
-                  title="Usuário conectado">
-
+            <span class="user-avatar" id="usuario-mobile-tooltip" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Usuário conectado">
                 <i class="fa-solid fa-user"></i>
             </span>
-
             <div class="user-info">
                 <strong id="usuario-logado">Usuário conectado</strong>
                 <small>Área administrativa</small>
             </div>
-
         </div>
 
-        <a href="<?= htmlspecialchars($base . '/diagnostico', ENT_QUOTES, 'UTF-8') ?>"
-           class="logout-btn me-2" title="Diagnóstico de erros com IA" style="text-decoration:none">
+        <a href="<?= htmlspecialchars($base . '/diagnostico', ENT_QUOTES, 'UTF-8') ?>" class="logout-btn me-2" title="Diagnóstico de erros com IA" style="text-decoration:none">
             <i class="fa-solid fa-stethoscope"></i>
             <span class="logout-label">Diagnóstico</span>
         </a>
 
-        <button type="button"
-                id="btnLogout"
-                class="logout-btn"
-                title="Sair do sistema"
-                aria-label="Sair do sistema">
-
+        <button type="button" id="btnLogout" class="logout-btn" title="Sair do sistema" aria-label="Sair do sistema">
             <i class="fa-solid fa-right-from-bracket"></i>
             <span class="logout-label">Sair</span>
         </button>
-
-
     </div>
 </header>
 
 <!-- MENU LATERAL DESKTOP -->
 <aside class="app-sidebar d-none d-lg-flex">
-
     <div class="sidebar-heading">Menu principal</div>
 
     <ul class="sidebar-nav">
-
         <li class="nav-item">
-            <button type="button"
-                    class="nav-link active"
-                    data-menu-target="#dashboard"
-                    data-bs-toggle="tab"
-                    data-bs-target="#dashboard"
-                    aria-controls="dashboard"
-                    aria-selected="true"
-                    onclick="carregarDashboard()">
-
+            <button type="button" class="nav-link active" data-menu-target="#dashboard" onclick="ativarAba('#dashboard'); if(typeof carregarDashboard === 'function') carregarDashboard();">
                 <i class="fa-solid fa-chart-pie"></i>
                 <span>Dashboard</span>
             </button>
         </li>
 
         <li class="nav-item">
-            <button type="button"
-                    class="nav-link"
-                    data-menu-target="#pedido"
-                    data-bs-toggle="tab"
-                    data-bs-target="#pedido"
-                    aria-controls="pedido"
-                    aria-selected="false"
-                    onclick="carregarPedido()">
-
+            <button type="button" class="nav-link" data-menu-target="#pedido" onclick="ativarAba('#pedido'); if(typeof carregarPedido === 'function') carregarPedido();">
                 <i class="fa-solid fa-box-open"></i>
                 <span>Pedidos</span>
             </button>
         </li>
 
         <li class="nav-item">
-            <button type="button"
-                    class="nav-link"
-                    data-menu-target="#status"
-                    data-bs-toggle="tab"
-                    data-bs-target="#status"
-                    aria-controls="status"
-                    aria-selected="false"
-                    onclick="carregarStatus()">
-
+            <button type="button" class="nav-link" data-menu-target="#status" onclick="ativarAba('#status'); if(typeof carregarStatus === 'function') carregarStatus();">
                 <i class="fa-solid fa-list-check"></i>
                 <span>Status dos pedidos</span>
             </button>
         </li>
 
         <li class="nav-item">
-            <button type="button"
-                    class="nav-link"
-                    data-menu-target="#shaper"
-                    data-bs-toggle="tab"
-                    data-bs-target="#shaper"
-                    aria-controls="shaper"
-                    aria-selected="false"
-                    onclick="carregarShaper()">
-
+            <button type="button" class="nav-link" data-menu-target="#shaper" onclick="ativarAba('#shaper'); if(typeof carregarShaper === 'function') carregarShaper();">
                 <i class="fa-solid fa-users"></i>
                 <span>Shaper / Cliente</span>
             </button>
         </li>
-
     </ul>
 
     <div class="sidebar-footer">
         <div class="sidebar-footer-card">
-
             <div class="sidebar-footer-line">
                 <i class="fa-solid fa-shield-halved"></i>
                 Ambiente de trabalho
             </div>
-
             <strong>Controle de Laminação</strong>
-
-            <small>
-                Gestão de pedidos, acompanhamento de status e cadastro de clientes.
-            </small>
-
+            <small>Gestão de pedidos, acompanhamento de status e cadastro de clientes.</small>
         </div>
     </div>
-
 </aside>
 
 <!-- CONTEÚDO PRINCIPAL -->
 <main class="app-main">
-
     <div class="content-shell">
-
         <div class="tab-content">
-
-            <div class="tab-pane fade show active"
-                 id="dashboard"
-                 role="tabpanel">
-
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
                 <div id="conteudo-dashboard"></div>
             </div>
 
-            <div class="tab-pane fade"
-                 id="pedido"
-                 role="tabpanel">
-
+            <div class="tab-pane fade" id="pedido" role="tabpanel">
                 <div id="conteudo-pedido"></div>
             </div>
 
-            <div class="tab-pane fade"
-                 id="status"
-                 role="tabpanel">
-
+            <div class="tab-pane fade" id="status" role="tabpanel">
                 <div id="conteudo-status"></div>
             </div>
 
-            <div class="tab-pane fade"
-                 id="shaper"
-                 role="tabpanel">
-
+            <div class="tab-pane fade" id="shaper" role="tabpanel">
                 <div id="conteudo-shaper"></div>
             </div>
-
         </div>
-
     </div>
-
 </main>
 
 <!-- MENU INFERIOR MOBILE -->
 <nav class="mobile-nav d-lg-none" aria-label="Navegação principal">
-
-    <button type="button"
-            class="nav-link active"
-            data-menu-target="#dashboard"
-            data-bs-toggle="tab"
-            data-bs-target="#dashboard"
-            aria-label="Dashboard"
-            aria-selected="true"
-            onclick="carregarDashboard()">
-
+    <button type="button" class="nav-link active" data-menu-target="#dashboard" aria-label="Dashboard" aria-selected="true" onclick="ativarAba('#dashboard'); if(typeof carregarDashboard === 'function') carregarDashboard();">
         <i class="fa-solid fa-chart-pie"></i>
         <span>Dashboard</span>
     </button>
 
-    <button type="button"
-        class="nav-link"
-        data-menu-target="#pedido"
-        data-bs-toggle="tab"
-        data-bs-target="#pedido"
-        aria-label="Pedido"
-        aria-selected="false"
-        onclick="carregarPedido()">
-    <i class="fa-solid fa-box-open"></i>
-    <span>Pedido</span>
-</button>
+    <button type="button" class="nav-link" data-menu-target="#pedido" aria-label="Pedido" aria-selected="false" onclick="ativarAba('#pedido'); if(typeof carregarPedido === 'function') carregarPedido();">
+        <i class="fa-solid fa-box-open"></i>
+        <span>Pedido</span>
+    </button>
 
-    <button type="button"
-            class="nav-link"
-            data-menu-target="#status"
-            data-bs-toggle="tab"
-            data-bs-target="#status"
-            aria-label="Status"
-            aria-selected="false"
-            onclick="carregarStatus()">
-
+    <button type="button" class="nav-link" data-menu-target="#status" aria-label="Status" aria-selected="false" onclick="ativarAba('#status'); if(typeof carregarStatus === 'function') carregarStatus();">
         <i class="fa-solid fa-list-check"></i>
         <span>Status</span>
     </button>
 
-    <button type="button"
-            class="nav-link"
-            data-menu-target="#shaper"
-            data-bs-toggle="tab"
-            data-bs-target="#shaper"
-            aria-label="Shaper e clientes"
-            aria-selected="false"
-            onclick="carregarShaper()">
-
+    <button type="button" class="nav-link" data-menu-target="#shaper" aria-label="Shaper e clientes" aria-selected="false" onclick="ativarAba('#shaper'); if(typeof carregarShaper === 'function') carregarShaper();">
         <i class="fa-solid fa-users"></i>
         <span>Clientes</span>
     </button>
-
 </nav>
 
 <!-- NOTIFICAÇÕES -->
 <div class="toast-container position-fixed top-0 end-0 p-3">
-
-    <div class="toast"
-         id="alertToast"
-         role="alert"
-         aria-live="assertive"
-         aria-atomic="true"
-         data-bs-delay="5000">
-
+    <div class="toast" id="alertToast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000">
         <div class="toast-header">
-
             <strong class="me-auto">
                 <i class="fa-regular fa-bell me-2"></i>
                 <span id="toast-title"></span>
             </strong>
-
-            <button type="button"
-                    class="btn-close"
-                    data-bs-dismiss="toast"
-                    aria-label="Fechar">
-            </button>
-
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Fechar"></button>
         </div>
-
         <div class="toast-body">
             <span id="toast-text"></span>
         </div>
-
     </div>
 </div>
 
 <!-- MODAL DETALHE DO PEDIDO -->
-<div class="modal fade"
-     id="modalPedidoDetalhe"
-     tabindex="-1"
-     aria-labelledby="modalPedidoDetalheLabel"
-     aria-hidden="true">
-
+<div class="modal fade" id="modalPedidoDetalhe" tabindex="-1" aria-labelledby="modalPedidoDetalheLabel" aria-hidden="true">
     <div class="modal-dialog modal-md modal-dialog-centered">
         <div class="modal-content">
-
             <div class="modal-header">
-
                 <h5 class="modal-title" id="modalPedidoDetalheLabel">
                     <i class="fa-solid fa-clipboard-list me-2 text-primary"></i>
                     Detalhe do Pedido
                 </h5>
-
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Fechar">
-                </button>
-
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
-
             <div class="modal-body">
                 <p>Detalhe</p>
             </div>
-
             <div class="modal-footer">
-
-                <button type="button"
-                        class="btn btn-primary"
-                        onclick="if (typeof imprimirDetalhePedido === 'function') imprimirDetalhePedido();">
-
+                <button type="button" class="btn btn-primary" onclick="if (typeof imprimirDetalhePedido === 'function') imprimirDetalhePedido();">
                     <i class="fa-solid fa-print me-1"></i>
                     Abrir / PDF
                 </button>
-
-                <button type="button"
-                        class="btn btn-light border"
-                        data-bs-dismiss="modal">
-
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">
                     Fechar
                 </button>
-
             </div>
         </div>
     </div>
@@ -953,39 +781,56 @@ document.addEventListener('DOMContentLoaded', function () {
 <script src="<?= htmlspecialchars($asset('public/js/pedido.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <script src="<?= htmlspecialchars($asset('public/js/status.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 
-<!-- Sincroniza o item ativo nos menus desktop e mobile -->
 <script>
-(function () {
-    'use strict';
-
-    const menuButtons = document.querySelectorAll('[data-menu-target]');
-
-    function marcarMenuAtivo(target) {
-        menuButtons.forEach(function (button) {
-            const ativo = button.getAttribute('data-menu-target') === target;
-
-            button.classList.toggle('active', ativo);
-            button.setAttribute('aria-selected', ativo ? 'true' : 'false');
+document.addEventListener('DOMContentLoaded', function () {
+    const botaoSair = document.getElementById('btnLogout');
+    if (botaoSair) {
+        botaoSair.addEventListener('click', function () {
+            if (typeof window.logout === 'function') {
+                window.logout();
+            } else {
+                console.error('Função logout() não encontrada.');
+                alert('A função de sair não foi carregada.');
+            }
         });
     }
+});
 
-    menuButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-            marcarMenuAtivo(button.getAttribute('data-menu-target'));
-        });
+window.ativarAba = function(seletorAlvo) {
+    document.querySelectorAll('[data-menu-target]').forEach(function (btn) {
+        const ativo = btn.getAttribute('data-menu-target') === seletorAlvo;
+        btn.classList.toggle('active', ativo);
+        btn.setAttribute('aria-selected', ativo ? 'true' : 'false');
     });
 
     document.querySelectorAll('.tab-content .tab-pane').forEach(function (pane) {
-        pane.addEventListener('shown.bs.tab', function () {
-            marcarMenuAtivo('#' + pane.id);
-        });
+        pane.classList.remove('show', 'active');
+        pane.style.display = 'none';
     });
 
-    const activePane = document.querySelector('.tab-content .tab-pane.active');
-
-    if (activePane) {
-        marcarMenuAtivo('#' + activePane.id);
+    const painelAlvo = document.querySelector(seletorAlvo);
+    if (painelAlvo) {
+        painelAlvo.style.display = 'block';
+        setTimeout(() => painelAlvo.classList.add('show', 'active'), 10);
     }
+
+    // Dispara a função de carregamento correspondente da aba
+    if (seletorAlvo === '#dashboard' && typeof carregarDashboard === 'function') {
+        carregarDashboard();
+    } else if (seletorAlvo === '#pedido' && typeof carregarPedido === 'function') {
+        carregarPedido();
+    } else if (seletorAlvo === '#status' && typeof carregarStatus === 'function') {
+        carregarStatus();
+    } else if (seletorAlvo === '#shaper' && typeof carregarShaper === 'function') {
+        carregarShaper();
+    }
+
+    window.scrollTo(0, 0);
+};
+
+(function () {
+    'use strict';
+    ativarAba('#dashboard');
 
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
         if (window.bootstrap && bootstrap.Tooltip) {
@@ -994,6 +839,3 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 })();
 </script>
-
-</body>
-</html>

@@ -16,7 +16,36 @@ $uri = explode('/', trim($url, '/'));
 
 $subRecurso = $uri[1] ?? null;
 $id = $uri[2] ?? null;
+
+// ===== CORREÇÃO: suporte a method override (_method) vindo do JSON =====
 $method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+
+$rawBody = file_get_contents('php://input');
+$jsonBody = [];
+if ($rawBody !== false && $rawBody !== '') {
+    $decoded = json_decode($rawBody, true);
+    if (is_array($decoded)) {
+        $jsonBody = $decoded;
+    }
+}
+
+if ($method === 'POST') {
+    $override = $jsonBody['_method'] ?? $_POST['_method'] ?? null;
+    if ($override !== null) {
+        $override = strtoupper((string) $override);
+        if (in_array($override, ['PUT', 'PATCH', 'DELETE'], true)) {
+            $method = $override;
+        }
+    }
+}
+
+// Se a URL veio sem ID, tenta pegar do corpo (apenas para PUT/PATCH/DELETE)
+if (($id === null || $id === '') && in_array($method, ['PUT', 'PATCH', 'DELETE'], true)) {
+    if (isset($jsonBody['id']) && $jsonBody['id'] !== '') {
+        $id = (string) $jsonBody['id'];
+    }
+}
+// =======================================================================
 
 if ($subRecurso === 'login') {
     if ($method !== 'POST') {
@@ -103,13 +132,43 @@ if (!is_file($controllerFile)) {
 try {
     require_once $controllerFile;
     $controller = new $controllerName();
-    $controller->processRequest($method, $id);
+
+    if (method_exists($controller, 'processRequest')) {
+        $controller->processRequest($method, $id);
+    } else {
+        $action = strtolower($method);
+        switch ($method) {
+            case 'GET':
+                $action = $id ? 'show' : 'index';
+                break;
+            case 'POST':
+                $action = 'store';
+                break;
+            case 'PUT':
+            case 'PATCH':
+                $action = 'update';
+                break;
+            case 'DELETE':
+                $action = 'destroy';
+                break;
+        }
+
+        if (method_exists($controller, $action)) {
+            if ($id !== null) {
+                $controller->$action($id);
+            } else {
+                $controller->$action();
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(['sucesso' => false, 'mensagem' => 'Método HTTP não permitido para este recurso.']);
+        }
+    }
 } catch (Throwable $e) {
     error_log('Erro na API: ' . $e->getMessage());
     http_response_code(500);
-    // Exibe a mensagem real do erro para sabermos exatamente o que falhou
     echo json_encode([
-        'sucesso' => false, 
+        'sucesso' => false,
         'mensagem' => 'Erro detalhado: ' . $e->getMessage(),
         'arquivo' => $e->getFile(),
         'linha' => $e->getLine()

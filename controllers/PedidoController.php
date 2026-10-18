@@ -101,9 +101,7 @@ class PedidoController {
             ]);
 
             if ($sucesso) {
-                // Notificação de e-mail ao criar o pedido (Opcional/Integrado)
                 $this->enviarNotificacaoEmail($this->conn->lastInsertId(), 'Criado');
-
                 echo json_encode(['sucesso' => true, 'mensagem' => 'Pedido criado com sucesso.']);
             } else {
                 http_response_code(500);
@@ -139,9 +137,7 @@ class PedidoController {
             ]);
 
             if ($sucesso) {
-                // Notificação de e-mail ao atualizar o pedido / mudança para produção
                 $this->enviarNotificacaoEmail($id, 'Atualizado / Em Produção');
-
                 echo json_encode(['sucesso' => true, 'mensagem' => 'Pedido atualizado com sucesso.']);
             } else {
                 http_response_code(500);
@@ -171,32 +167,8 @@ class PedidoController {
         }
     }
 
-    /**
-     * Função auxiliar para envio de e-mail de notificação (Brevo / SendGrid / SMTP)
-     */
-    private function enviarNotificacaoEmail($idPedido, $statusAcao) {
-        try {
-            // Aqui você pode configurar o envio via API cURL (ex: Brevo/SendGrid) ou função mail()
-            // Exemplo básico de log ou disparo simulado seguro:
-            $assunto = "Atualização no Pedido #{$idPedido}";
-            $mensagem = "O seu pedido ID {$idPedido} teve uma atualização de status: {$statusAcao}.";
-            
-            // Exemplo de registo no log do sistema para auditoria
-            if (class_exists('Logger')) {
-                Logger::log("E-mail simulado enviado para o pedido {$idPedido} - Status: {$statusAcao}");
-            }
-        } catch (Throwable $e) {
-            // Garante que falhas no e-mail não quebrem a resposta JSON principal da API
-            error_log("Erro ao enviar e-mail: " . $e->getMessage());
-        }
-    }
-}
-/**
-     * Função auxiliar para envio de e-mail de notificação real via API cURL (Brevo / SendGrid)
-     */
     private function enviarNotificacaoEmail($idPedido, $statusAcao, $emailDestinatario = 'cliente@exemplo.com') {
         try {
-            // Substitua pela sua chave de API real obtida no painel da Brevo / SendGrid
             $apiKey = 'xkeysib-sua-chave-de-api-aqui'; 
             $url = 'https://api.brevo.com/v3/smtp/email';
 
@@ -238,13 +210,8 @@ class PedidoController {
 
             if ($erro) {
                 error_log("Erro cURL ao enviar e-mail: " . $erro);
-            } else {
-                if (class_exists('Logger')) {
-                    Logger::log("E-mail disparado via API Brevo para o pedido {$idPedido}");
-                }
             }
         } catch (Throwable $e) {
-            // Garante que falhas na API de e-mail não quebrem a resposta JSON principal da API
             error_log("Erro crítico ao enviar e-mail: " . $e->getMessage());
         }
     }

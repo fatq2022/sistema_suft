@@ -4,8 +4,9 @@ if (!window.SHAPER_MODULE_LOADED) {
   window.editId = null;
 
   function apiUrl(recurso, id = null) {
-    if (id) return `${window.BASE_URL}/api/${recurso}/${id}`;
-    return `${window.BASE_URL}/api/${recurso}`;
+    const baseUrl = window.BASE_URL || '/sistema';
+    if (id) return `${baseUrl}/api/${recurso}/${id}`;
+    return `${baseUrl}/api/${recurso}`;
   }
 
   // ===============================
@@ -26,17 +27,19 @@ if (!window.SHAPER_MODULE_LOADED) {
       }
 
       data.forEach((shaper) => {
+        const idReal = shaper.id_shaper || shaper.id;
+
         lista.innerHTML += `
                 <tr>
-                    <td>${shaper.id}</td>
+                    <td>${idReal}</td>
                     <td>${shaper.nome}</td>
-                    <td>${shaper.telefone}</td>
-                    <td>${shaper.email}</td>
+                    <td>${shaper.telefone || ""}</td>
+                    <td>${shaper.email || ""}</td>
                     <td class="text-center align-middle">
                         <div class="form-check form-switch d-inline-block">
                             <input class="form-check-input" type="checkbox" role="switch" 
                                 ${shaper.ativo == 1 ? "checked" : ""} 
-                                onchange="window.alternarAtivoShaper(${shaper.id}, this.checked)">
+                                onchange="window.alternarAtivoShaper(${idReal}, this.checked)">
                         </div>
                     </td>
                     <td>
@@ -44,7 +47,7 @@ if (!window.SHAPER_MODULE_LOADED) {
                             <button class="btn btn-outline-secondary" onclick='window.preencherEdicao(${JSON.stringify(shaper)})' title="Editar">
                                 <i class="fa-solid fa-pen"></i>
                             </button>
-                            <button class="btn btn-outline-danger" onclick="window.abrirModalShaperExcluir(${shaper.id})" title="Excluir">
+                            <button class="btn btn-outline-danger" onclick="window.abrirModalShaperExcluir(${idReal})" title="Excluir">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         </div>
@@ -99,7 +102,6 @@ if (!window.SHAPER_MODULE_LOADED) {
           });
         window.listarShapers();
       } else {
-        // Captura erro 400 do PHP (Vínculo com pedidos)
         if (typeof showToast === "function") {
           showToast("Atenção", {
             erro: result.erro || "Ação Impedida",
@@ -110,7 +112,6 @@ if (!window.SHAPER_MODULE_LOADED) {
         }
       }
     } catch (error) {
-      // Caso o servidor caia ou o PHP gere erro fatal de banco
       if (typeof showToast === "function") {
         showToast("Atenção", {
           erro: "Erro técnico",
@@ -122,22 +123,28 @@ if (!window.SHAPER_MODULE_LOADED) {
   };
 
   // ===============================
-  // ALTERNAR ATIVO (SWITCH)
+  // ALTERNAR ATIVO (SWITCH) - CORRIGIDO
   // ===============================
   window.alternarAtivoShaper = async function (id, isChecked) {
     try {
-      await fetch(apiUrl("shapers", id), {
+      const response = await fetch(apiUrl("shapers", id), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           _method: "PUT",
-          id: id,
-          ativo: isChecked ? 1 : 0,
-          somenteAtivo: true,
+          ativo: isChecked ? 1 : 0
         }),
       });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        console.error("Erro ao alternar status:", result);
+        if (typeof showToast === "function") {
+          showToast("Atenção", { erro: "Erro", mensagem: result.mensagem || "Não foi possível atualizar o estado." });
+        }
+      }
     } catch (error) {
-      console.error("Erro ao alternar status:", error);
+      console.error("Erro de rede ao alternar status:", error);
     }
   };
 
@@ -145,9 +152,9 @@ if (!window.SHAPER_MODULE_LOADED) {
   // CADASTRAR / ATUALIZAR
   // ===============================
   window.cadastrarOuAtualizar = async function () {
-    const nome = document.getElementById("nome").value;
-    const telefone = document.getElementById("telefone").value;
-    const email = document.getElementById("email").value;
+    const nome = document.getElementById("nome")?.value;
+    const telefone = document.getElementById("telefone")?.value;
+    const email = document.getElementById("email")?.value;
 
     if (!nome) {
       if (typeof showToast === "function")
@@ -187,7 +194,7 @@ if (!window.SHAPER_MODULE_LOADED) {
   // BUSCAR
   // ===============================
   window.buscarShaper = async function () {
-    const texto = document.getElementById("buscarTexto").value.trim();
+    const texto = document.getElementById("buscarTexto")?.value.trim();
     if (!texto) return window.listarShapers();
     try {
       const response = await fetch(apiUrl("shapers", texto));
@@ -197,17 +204,18 @@ if (!window.SHAPER_MODULE_LOADED) {
       lista.innerHTML = "";
       const results = Array.isArray(data) ? data : [data];
       results.forEach((shaper) => {
+        const idReal = shaper.id_shaper || shaper.id;
         lista.innerHTML += `
                 <tr>
-                    <td>${shaper.id}</td><td>${shaper.nome}</td><td>${shaper.telefone}</td><td>${shaper.email}</td>
+                    <td>${idReal}</td><td>${shaper.nome}</td><td>${shaper.telefone || ""}</td><td>${shaper.email || ""}</td>
                     <td class="text-center align-middle">
                         <div class="form-check form-switch d-inline-block">
-                            <input class="form-check-input" type="checkbox" ${shaper.ativo == 1 ? "checked" : ""} onchange="window.alternarAtivoShaper(${shaper.id}, this.checked)">
+                            <input class="form-check-input" type="checkbox" ${shaper.ativo == 1 ? "checked" : ""} onchange="window.alternarAtivoShaper(${idReal}, this.checked)">
                         </div>
                     </td>
                     <td><div class="btn-group btn-group-sm">
                         <button class="btn btn-outline-secondary" onclick='window.preencherEdicao(${JSON.stringify(shaper)})'><i class="fa-solid fa-pen"></i></button>
-                        <button class="btn btn-outline-danger" onclick="window.abrirModalShaperExcluir(${shaper.id})"><i class="fa-solid fa-trash"></i></button>
+                        <button class="btn btn-outline-danger" onclick="window.abrirModalShaperExcluir(${idReal})"><i class="fa-solid fa-trash"></i></button>
                     </div></td>
                 </tr>`;
       });
@@ -220,10 +228,10 @@ if (!window.SHAPER_MODULE_LOADED) {
   // AUXILIARES (EDIÇÃO E RESET)
   // ===============================
   window.preencherEdicao = function (shaper) {
-    window.editId = shaper.id;
-    document.getElementById("nome").value = shaper.nome;
-    document.getElementById("telefone").value = shaper.telefone;
-    document.getElementById("email").value = shaper.email;
+    window.editId = shaper.id_shaper || shaper.id;
+    if (document.getElementById("nome")) document.getElementById("nome").value = shaper.nome || "";
+    if (document.getElementById("telefone")) document.getElementById("telefone").value = shaper.telefone || "";
+    if (document.getElementById("email")) document.getElementById("email").value = shaper.email || "";
 
     const btnSubmit = document.getElementById("btnSubmit");
     if (btnSubmit) {
@@ -234,17 +242,18 @@ if (!window.SHAPER_MODULE_LOADED) {
     const btnCancel = document.getElementById("btnCancelarShaper");
     if (btnCancel) btnCancel.classList.remove("d-none");
 
-    document.getElementById("nome").focus();
-    document
-      .getElementById("up")
-      .scrollIntoView({ behavior: "smooth", block: "start" });
+    if (document.getElementById("nome")) document.getElementById("nome").focus();
+    const upEl = document.getElementById("up");
+    if (upEl) {
+      upEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   window.resetForm = function () {
     window.editId = null;
-    document.getElementById("nome").value = "";
-    document.getElementById("telefone").value = "";
-    document.getElementById("email").value = "";
+    if (document.getElementById("nome")) document.getElementById("nome").value = "";
+    if (document.getElementById("telefone")) document.getElementById("telefone").value = "";
+    if (document.getElementById("email")) document.getElementById("email").value = "";
 
     const btnSubmit = document.getElementById("btnSubmit");
     if (btnSubmit) {

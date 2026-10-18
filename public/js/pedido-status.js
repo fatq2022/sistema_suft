@@ -35,7 +35,7 @@ window.listarPedidosStatus = async function () {
     );
     const pedidos = await resPedidos.json();
 
-    let htmlFinal = ""; // Acumula o HTML para injetar de uma vez só
+    let htmlFinal = ""; 
 
     for (const pedido of pedidos) {
       const resStatus = await fetch(
@@ -136,18 +136,17 @@ window.listarPedidosStatus = async function () {
 
       timelineHTML += "</div>";
 
-      // Lógica de alerta visual para o prazo (PU: 10 dias / EPS: 25 dias calculados no backend)
       let badgePrazoClass = "text-bg-success";
       const hoje = new Date().toISOString().split('T')[0];
       
       if (pedido.data_prevista_entrega) {
           if (pedido.data_prevista_entrega < hoje) {
-              badgePrazoClass = "text-bg-danger"; // Atrasado (Vermelho)
+              badgePrazoClass = "text-bg-danger"; 
           } else {
               const diffTime = new Date(pedido.data_prevista_entrega) - new Date(hoje);
               const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
               if (diffDays <= 2) {
-                  badgePrazoClass = "text-bg-warning text-dark"; // Próximo do vencimento (Amarelo)
+                  badgePrazoClass = "text-bg-warning text-dark"; 
               }
           }
       }
@@ -268,11 +267,19 @@ window.excluirStatusPedido = async function (id) {
 // SALVAR STATUS
 // ===============================
 window.salvarStatusPedido = async function () {
-  const idPedido = document.getElementById("statusPedidoId").value;
-  const idStatusItem = document.getElementById("statusIndex")?.value;
-  const data = document.getElementById("statusData").value;
-  const obs = document.getElementById("statusObs").value;
-  const idStatus = document.getElementById("statusIdReal")?.value || 1;
+  const inputPedidoId = document.getElementById("statusPedidoId");
+  const inputStatusIndex = document.getElementById("statusIndex");
+  const inputData = document.getElementById("statusData");
+  const inputObs = document.getElementById("statusObs");
+  const inputIdStatusReal = document.getElementById("statusIdReal");
+
+  if (!inputPedidoId) return;
+
+  const idPedido = inputPedidoId.value;
+  const idStatusItem = inputStatusIndex ? inputStatusIndex.value : null;
+  const data = inputData ? inputData.value : "";
+  const obs = inputObs ? inputObs.value : "";
+  const idStatus = inputIdStatusReal ? inputIdStatusReal.value : 1;
 
   try {
     let body = {
@@ -295,10 +302,11 @@ window.salvarStatusPedido = async function () {
 
     if (typeof showToast === "function") showToast("Status do Pedido", result);
 
-    const modalInstance = bootstrap.Modal.getInstance(
-      document.getElementById("modalStatus"),
-    );
-    if (modalInstance) modalInstance.hide();
+    const modalEl = document.getElementById("modalStatus");
+    if (modalEl) {
+      const modalInstance = bootstrap.Modal.getInstance(modalEl);
+      if (modalInstance) modalInstance.hide();
+    }
 
     setTimeout(() => window.listarPedidosStatus(), 500);
   } catch (err) {
@@ -311,6 +319,8 @@ window.salvarStatusPedido = async function () {
 // ===============================
 window.abrirModalStatus = async function (idPedido, idStatus = null) {
   const inputPedidoId = document.getElementById("statusPedidoId");
+  if (!inputPedidoId) return; // Proteção principal
+
   const inputDescricao = document.getElementById("statusDescricao");
   const inputData = document.getElementById("statusData");
   const inputObs = document.getElementById("statusObs");
@@ -318,8 +328,7 @@ window.abrirModalStatus = async function (idPedido, idStatus = null) {
   const inputIdStatusReal = document.getElementById("statusIdReal");
 
   inputPedidoId.value = idPedido;
-  inputStatusIndex.value = idStatus || "";
-
+  if (inputStatusIndex) inputStatusIndex.value = idStatus || "";
   if (!idStatus) {
     const statusDestePedido = Object.values(window.statusMap)
       .filter((st) => st.id_pedido == idPedido)
@@ -333,32 +342,33 @@ window.abrirModalStatus = async function (idPedido, idStatus = null) {
       );
       const proximo = await res.json();
       if (proximo && proximo.id_status) {
-        inputDescricao.value = proximo.descricao;
+        if (inputDescricao) inputDescricao.value = proximo.descricao;
         if (inputIdStatusReal) inputIdStatusReal.value = proximo.id_status;
       } else {
-        inputDescricao.value = ultimo ? "Finalizado" : "Novo Status";
+        if (inputDescricao) inputDescricao.value = ultimo ? "Finalizado" : "Novo Status";
         if (inputIdStatusReal) inputIdStatusReal.value = idCategoriaAtual;
       }
     } catch (err) {
-      inputDescricao.value = "Novo Status";
+      if (inputDescricao) inputDescricao.value = "Novo Status";
     }
 
     const agora = new Date();
     agora.setMinutes(agora.getMinutes() - agora.getTimezoneOffset());
-    inputData.value = agora.toISOString().slice(0, 16);
-    inputObs.value = "";
+    if (inputData) inputData.value = agora.toISOString().slice(0, 16);
+    if (inputObs) inputObs.value = "";
   } else {
     const st = window.statusMap[idStatus];
     if (!st) return;
-    inputDescricao.value = st.descricao || "";
+    if (inputDescricao) inputDescricao.value = st.descricao || "";
     if (inputIdStatusReal) inputIdStatusReal.value = st.id_status;
-    inputData.value = st.data ? st.data.replace(" ", "T").slice(0, 16) : "";
-    inputObs.value = st.observacao || "";
+    if (inputData) inputData.value = st.data ? st.data.replace(" ", "T").slice(0, 16) : "";
+    if (inputObs) inputObs.value = st.observacao || "";
   }
 
-  bootstrap.Modal.getOrCreateInstance(
-    document.getElementById("modalStatus"),
-  ).show();
+  const modalEl = document.getElementById("modalStatus");
+  if (modalEl) {
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+  }
 };
 
 document.addEventListener("click", function (e) {
@@ -373,6 +383,8 @@ window.initPedidoStatus = () => {
 window.solicitarExclusaoGerenciamento = function (id, acaoDeletar) {
   const modalEl = document.getElementById("modalExcluirGerenciamento");
   const btnSim = document.getElementById("btnConfirmarExcluirGerenciamento");
+
+  if (!modalEl || !btnSim) return;
 
   btnSim.onclick = async () => {
     await acaoDeletar(id);
