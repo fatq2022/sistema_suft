@@ -1,6 +1,8 @@
 RewriteEngine On
-
 RewriteBase /sistema/
+
+# Permitir acesso direto a qualquer ficheiro ou pasta dentro de views
+RewriteRule ^views/ - [L]
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
